@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Состав">
 <meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
@@ -32,7 +32,7 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 html{overflow:hidden;overscroll-behavior:none}
 /* lock the document so iOS can't rubber-band the whole screen; only inner lists scroll */
-body{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none;touch-action:pan-x pan-y}
+body{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none;touch-action:pan-y}
 button{font-family:inherit;cursor:pointer}
 input,textarea,select{font-family:inherit}
 .i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -41,10 +41,9 @@ input,textarea,select{font-family:inherit}
 /* ---------- app shell ---------- */
 #app{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);overflow:hidden;transition:transform .5s var(--spring),border-radius .5s var(--spring),filter .5s}
 body.has-sheet #app{transform:scale(.94) translateY(calc(var(--sat) * .5));border-radius:18px;filter:brightness(.7)}
-html.fit #app,html.fit .sheet-wrap,html.fit .alert-wrap,html.fit .lightbox{bottom:auto;height:var(--app-h)}
-.view{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;padding-bottom:calc(120px + var(--sab));opacity:0;visibility:hidden;transform:scale(.985);transition:opacity .28s ease,transform .35s var(--spring),visibility 0s .3s}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:none;padding-bottom:calc(120px + var(--sab));opacity:0;visibility:hidden;transform:scale(.985);transition:opacity .28s ease,transform .35s var(--spring),visibility 0s .3s}
 .view.on{opacity:1;visibility:visible;transform:none;transition:opacity .28s ease,transform .35s var(--spring),visibility 0s}
-.view::before{content:'';position:absolute;left:-20%;right:-20%;top:-120px;height:340px;background:radial-gradient(50% 50% at 50% 50%,rgba(74,141,255,.16),transparent 70%);pointer-events:none}
+.view::before{content:'';position:absolute;left:0;right:0;top:-120px;height:340px;background:radial-gradient(50% 50% at 50% 50%,rgba(74,141,255,.16),transparent 70%);pointer-events:none}
 .view[data-v=events]::before{background:radial-gradient(50% 50% at 70% 50%,rgba(170,110,255,.15),transparent 70%)}
 .view[data-v=more]::before{background:radial-gradient(50% 50% at 30% 50%,rgba(255,190,70,.12),transparent 70%)}
 
@@ -157,7 +156,7 @@ html.fit #app,html.fit .sheet-wrap,html.fit .alert-wrap,html.fit .lightbox{botto
 .txt-btn.r{text-align:right}
 .txt-btn.bold{font-weight:700}
 .txt-btn:disabled{opacity:.3}
-.sheet-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(40px + var(--sab));overscroll-behavior:none}
+.sheet-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(40px + var(--sab));overscroll-behavior:none}
 
 /* forms */
 .glabel{padding:20px 32px 7px;font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
@@ -347,7 +346,7 @@ body.dragging .zone{border-color:rgba(255,255,255,.14)}
 <script src="js/lottie.min.js"></script>
 <script>
 'use strict';
-const APP_VERSION='1.4';
+const APP_VERSION='1.5';
 /* ================= helpers ================= */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-5);
@@ -1053,16 +1052,7 @@ document.addEventListener('click',async e=>{
 if(!TABS.includes(UI.tab))UI.tab='workers';
 refresh();setTab(UI.tab,true);
 requestAnimationFrame(()=>document.body.classList.add('ready'));
-/* iOS home-screen bug: the viewport comes out shorter than the screen and leaves a black strip at the bottom.
-   In standalone mode stretch the app to the real screen height. */
-function fitScreen(){
-  const de=document.documentElement,st=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
-  const portrait=innerHeight>=innerWidth,full=portrait?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
-  const gap=full-innerHeight;
-  if(st&&gap>2&&gap<140){de.style.setProperty('--app-h',full+'px');de.classList.add('fit')}
-  else{de.classList.remove('fit')}
-}
-fitScreen();addEventListener('resize',fitScreen);addEventListener('orientationchange',()=>setTimeout(fitScreen,300));
+
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
@@ -1084,7 +1074,6 @@ function diagText(){
     'html clientHeight: '+document.documentElement.clientHeight,
     'safe-area верх/низ: '+sa.join(' / '),
     'app: '+r('#app')+'   панель: '+r('#tabbar'),
-    'fit: '+document.documentElement.classList.contains('fit'),
     'прокрутка страницы: '+(se?se.scrollTop+' из '+se.scrollHeight+' (видно '+se.clientHeight+')':'?'),
     'sw: '+(navigator.serviceWorker&&navigator.serviceWorker.controller?'активен':'нет'),
     navigator.userAgent
