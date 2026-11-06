@@ -278,7 +278,8 @@ body.dragging .zone{border-color:rgba(255,255,255,.14)}
 .mrow .tx{flex:1}
 .mrow .tx small{display:block;font:400 13px var(--font);color:var(--muted);margin-top:1px}
 .mrow.red{color:var(--red)}
-.foot{text-align:center;color:var(--muted2);font-size:12px;padding:26px 0 0}
+.foot{display:block;width:100%;background:none;border:0;text-align:center;color:var(--muted2);font:400 12px/1.5 var(--font);padding:26px 0 0}
+.diag{font:500 13px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;padding:14px 16px;color:var(--text)}
 
 /* alerts / toast / lightbox */
 .alert-wrap{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:24px}
@@ -346,6 +347,7 @@ body.dragging .zone{border-color:rgba(255,255,255,.14)}
 <script src="js/lottie.min.js"></script>
 <script>
 'use strict';
+const APP_VERSION='1.4';
 /* ================= helpers ================= */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-5);
@@ -532,7 +534,7 @@ function renderMore(){
     </div>
     <div class="glabel"> </div>
     <div class="lgroup"><button class="mrow red" data-act="wipe">${lot('noentry')}<div class="tx">Удалить все данные</div></button></div>
-    <div class="foot">Данные хранятся только на этом устройстве · v1.0</div>`);
+    <button class="foot" data-act="diag">Данные хранятся только на этом устройстве<br>Версия ${APP_VERSION} · нажми для диагностики</button>`);
 }
 
 function renderBadges(){
@@ -1030,6 +1032,7 @@ document.addEventListener('click',async e=>{
     case 'seg':UI.seg=id;saveUI();haptic();renderEvents();break;
     case 'wtag':UI.wtag=id;haptic();renderWorkers();break;
     case 'demo':demo();break;
+    case 'diag':openSheet({render:()=>`<div class="sheet-head"><button class="gbtn" data-act="close">${I.x}</button><div class="sh-title">Диагностика</div><span style="width:40px"></span></div><div class="sheet-body"><div class="glabel">Сделай скриншот этого экрана</div><div class="group"><div class="diag">${esc(diagText())}</div></div></div>`});break;
     case 'export':exportData();break;
     case 'import':$('#import-file').click();break;
     case 'install':infoSheet('phone','На экран «Домой»',[
@@ -1062,7 +1065,31 @@ function fitScreen(){
 fitScreen();addEventListener('resize',fitScreen);addEventListener('orientationchange',()=>setTimeout(fitScreen,300));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+  const hadCtl=!!navigator.serviceWorker.controller;let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadCtl&&!reloaded){reloaded=true;location.reload()}});
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update().catch(()=>{});document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update().catch(()=>{})})}).catch(()=>{});
+}
+function diagText(){
+  const p=document.createElement('div');p.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';document.body.appendChild(p);
+  const cs=getComputedStyle(p),sa=[cs.paddingTop,cs.paddingBottom].map(x=>parseFloat(x));p.remove();
+  const r=el=>{const b=$(el).getBoundingClientRect();return Math.round(b.top)+'…'+Math.round(b.bottom)};
+  const vv=window.visualViewport;const se=document.scrollingElement;
+  return [
+    'версия: '+APP_VERSION,
+    'с экрана Домой: '+(navigator.standalone?'да':'нет')+' / '+(matchMedia('(display-mode: standalone)').matches?'standalone':'browser'),
+    'окно: '+innerWidth+'×'+innerHeight,
+    'экран: '+screen.width+'×'+screen.height,
+    'visualViewport: '+(vv?Math.round(vv.width)+'×'+Math.round(vv.height)+' сдвиг '+Math.round(vv.offsetTop):'нет'),
+    'html clientHeight: '+document.documentElement.clientHeight,
+    'safe-area верх/низ: '+sa.join(' / '),
+    'app: '+r('#app')+'   панель: '+r('#tabbar'),
+    'fit: '+document.documentElement.classList.contains('fit'),
+    'прокрутка страницы: '+(se?se.scrollTop+' из '+se.scrollHeight+' (видно '+se.clientHeight+')':'?'),
+    'sw: '+(navigator.serviceWorker&&navigator.serviceWorker.controller?'активен':'нет'),
+    navigator.userAgent
+  ].join(String.fromCharCode(10));
+}
 </script>
 </body>
 </html>
