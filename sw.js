@@ -1,4 +1,4 @@
-const C='sostav-v1';
+const C='sostav-v2';
 const SHELL=['./','./index.html','./manifest.webmanifest','./js/lottie.min.js','./icons/icon-180.png','./icons/icon-192.png','./icons/icon-512.png',
   ...['book','cool','dizzy','idea','laptop','noentry','phone','relieved','star','sweat'].map(n=>`./anim/${n}.json`)];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
