@@ -39,8 +39,9 @@ input,textarea,select{font-family:inherit}
 .hidden{display:none!important}
 
 /* ---------- app shell ---------- */
-#app{position:fixed;inset:0;background:var(--bg);overflow:hidden;transition:transform .5s var(--spring),border-radius .5s var(--spring),filter .5s}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);overflow:hidden;transition:transform .5s var(--spring),border-radius .5s var(--spring),filter .5s}
 body.has-sheet #app{transform:scale(.94) translateY(calc(var(--sat) * .5));border-radius:18px;filter:brightness(.7)}
+html.fit #app,html.fit .sheet-wrap,html.fit .alert-wrap,html.fit .lightbox{bottom:auto;height:var(--app-h)}
 .view{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;padding-bottom:calc(120px + var(--sab));opacity:0;visibility:hidden;transform:scale(.985);transition:opacity .28s ease,transform .35s var(--spring),visibility 0s .3s}
 .view.on{opacity:1;visibility:visible;transform:none;transition:opacity .28s ease,transform .35s var(--spring),visibility 0s}
 .view::before{content:'';position:absolute;left:-20%;right:-20%;top:-120px;height:340px;background:radial-gradient(50% 50% at 50% 50%,rgba(74,141,255,.16),transparent 70%);pointer-events:none}
@@ -1049,6 +1050,16 @@ document.addEventListener('click',async e=>{
 if(!TABS.includes(UI.tab))UI.tab='workers';
 refresh();setTab(UI.tab,true);
 requestAnimationFrame(()=>document.body.classList.add('ready'));
+/* iOS home-screen bug: the viewport comes out shorter than the screen and leaves a black strip at the bottom.
+   In standalone mode stretch the app to the real screen height. */
+function fitScreen(){
+  const de=document.documentElement,st=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
+  const portrait=innerHeight>=innerWidth,full=portrait?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
+  const gap=full-innerHeight;
+  if(st&&gap>2&&gap<140){de.style.setProperty('--app-h',full+'px');de.classList.add('fit')}
+  else{de.classList.remove('fit')}
+}
+fitScreen();addEventListener('resize',fitScreen);addEventListener('orientationchange',()=>setTimeout(fitScreen,300));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
